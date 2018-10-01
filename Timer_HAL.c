@@ -24,3 +24,18 @@ int OneShot10sTimerExpired() {
 }
 
 
+void Init6sTimer(){
+    Timer32_initModule(TIMER32_0_BASE,
+                       TIMER32_PRESCALER_1,
+                       TIMER32_32BIT,
+                       TIMER32_PERIODIC_MODE);
+}
+
+void StartOneShot6sTimer() {
+    Timer32_setCount(TIMER32_0_BASE, 18000000); // 6s second period on 3MHz clock
+    Timer32_startTimer(TIMER32_0_BASE, true);
+}
+
+int OneShot6sTimerExpired() {
+    return (Timer32_getValue(TIMER32_0_BASE) == 0);
+}

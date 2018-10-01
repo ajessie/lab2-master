@@ -46,7 +46,7 @@
 
 // Global parameters with current application settings
 
-typedef enum {egg, child, adult} age_t;
+typedef enum {egg, child, adult, dead} age_t;
 typedef enum {baud9600, baud19200, baud38400, baud57600} UARTBaudRate_t;
 
 UARTBaudRate_t currentBaudRate;
@@ -613,14 +613,19 @@ void DisplayDeathScreen(){
     EngraveTombstone();
 }
 
+void TamagotchiDie(Tamagotchi *game_tama){
+    game_tama->age = dead;
+    DisplayDeathScreen();
+}
+
 void DecrementEnergy(Tamagotchi *game_tama){
     if (game_tama->energy > 0){
         game_tama->energy--;
         WriteEnergyMeter(game_tama);
     }
 
-    if (!IsAlive(game_tama))
-        DisplayDeathScreen();
+//    if (!IsAlive(game_tama))
+//        DisplayDeathScreen();
 }
 
 void DecrementHappy(Tamagotchi *game_tama){
@@ -628,8 +633,8 @@ void DecrementHappy(Tamagotchi *game_tama){
         game_tama->happy--;
         WriteHappyMeter(game_tama);
 
-        if (!IsAlive(game_tama))
-            DisplayDeathScreen();
+//        if (!IsAlive(game_tama))
+//            DisplayDeathScreen();
     }
     else
         DecrementEnergy(game_tama);
@@ -751,6 +756,7 @@ void SetupNewGame(Tamagotchi *game_tama){
 
     UpdateWholeDisplay(game_tama);
     StartOneShot10sTimer();
+    StartOneShot6sTimer();
 }
 
 //-----------------------------------------------------------------------
@@ -765,6 +771,7 @@ int main(void) {
     InitUART();
     InitLEDs();
     Init10sTimer();
+    Init6sTimer();
 
     SetupNewGame(&myTamagotchi);
 
@@ -772,26 +779,48 @@ int main(void) {
 
         if (UARTHasChar()) {
             c = UARTGetChar();
-            if (myTamagotchi.age > egg){
+            if (myTamagotchi.age > egg && myTamagotchi.age != dead){
                 processChar(c, &myTamagotchi);
             }
             UARTPutChar(c);
         }
 
-        if (OneShot10sTimerExpired()){
+        //Decrease energy every 6s
+        if (OneShot6sTimerExpired()){
+            //if (IsAlive(&myTamagotchi)){
+            if (myTamagotchi.age > egg)
+               DecrementEnergy(&myTamagotchi);
+               // StartOneShot6sTimer();
+           // }
             if (IsAlive(&myTamagotchi)){
+                StartOneShot6sTimer();
+            }
+            else {
+                TamagotchiDie(&myTamagotchi);
+                while(1);
+                //return 0;
+            }
+        }
+
+        //Every 10s, grow older and decrease happiness.
+        if (OneShot10sTimerExpired()){
+            //if (IsAlive(&myTamagotchi)){
                 GrowOlder(&myTamagotchi);
 
-                if (myTamagotchi.age == child){
+                if (myTamagotchi.age > egg)
                     DecrementHappy(&myTamagotchi);
+
+                if (IsAlive(&myTamagotchi)){
+                    StartOneShot10sTimer();
                 }
-                else if (myTamagotchi.age == adult){
-                    DecrementHappy(&myTamagotchi);
-                    DecrementEnergy(&myTamagotchi);
+                else{
+                    TamagotchiDie(&myTamagotchi);
+                    while(1);
+                    //return 0;
                 }
 
-                StartOneShot10sTimer();
-            }
+                //StartOneShot10sTimer();
+            //}
         }
     }
 }

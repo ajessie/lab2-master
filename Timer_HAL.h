@@ -5,9 +5,10 @@
 
 
 
-// Functions related to 32-bit timer. Notice how we change the name to a generic name.
-// Initializes the 32-bit timer, named Timer 1
 void Init10sTimer();
 void StartOneShot10sTimer();
 int OneShot10sTimerExpired();
 
+void Init6sTimer();
+void StartOneShot6sTimer();
+int OneShot6sTimerExpired();
