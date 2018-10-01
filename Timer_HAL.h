@@ -9,6 +9,6 @@ void Init10sTimer();
 void StartOneShot10sTimer();
 int OneShot10sTimerExpired();
 
-void Init6sTimer();
-void StartOneShot6sTimer();
-int OneShot6sTimerExpired();
+void Init5sTimer();
+void StartOneShot5sTimer();
+int OneShot5sTimerExpired();

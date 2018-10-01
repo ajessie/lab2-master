@@ -12,8 +12,8 @@
 #include <Timer_HAL.h>
 
 
-#define EGG_MAX_YEARS 2
-#define CHILD_MAX_YEARS 10
+#define EGG_MAX_YEARS 0
+#define CHILD_MAX_YEARS 7
 
 #define RADIUS_EGG 10
 #define RADIUS_CHILD 11
@@ -614,8 +614,10 @@ void DisplayDeathScreen(){
 }
 
 void TamagotchiDie(Tamagotchi *game_tama){
-    game_tama->age = dead;
-    DisplayDeathScreen();
+    if (game_tama->age != dead){
+        DisplayDeathScreen();
+        game_tama->age = dead;
+    }
 }
 
 void DecrementEnergy(Tamagotchi *game_tama){
@@ -623,21 +625,13 @@ void DecrementEnergy(Tamagotchi *game_tama){
         game_tama->energy--;
         WriteEnergyMeter(game_tama);
     }
-
-//    if (!IsAlive(game_tama))
-//        DisplayDeathScreen();
 }
 
 void DecrementHappy(Tamagotchi *game_tama){
     if (game_tama->happy > 0){
         game_tama->happy--;
         WriteHappyMeter(game_tama);
-
-//        if (!IsAlive(game_tama))
-//            DisplayDeathScreen();
     }
-    else
-        DecrementEnergy(game_tama);
 }
 
 void IncrementEnergy(Tamagotchi *game_tama){
@@ -736,13 +730,15 @@ void processChar(uint8_t c, Tamagotchi *game_tama) {
             MoveDown(game_tama);
         else if (c == 'd')
             MoveRight(game_tama);
+
+        if (game_tama->playCount >= PLAY_TARGET){
+            IncrementHappy(game_tama);
+            DecrementEnergy(game_tama);
+            game_tama->playCount = 0;
+        }
     }
 
-    if (game_tama->playCount >= PLAY_TARGET){
-        IncrementHappy(game_tama);
-        DecrementEnergy(game_tama);
-        game_tama->playCount = 0;
-    }
+
 }
 
 void SetupNewGame(Tamagotchi *game_tama){
@@ -750,13 +746,13 @@ void SetupNewGame(Tamagotchi *game_tama){
     game_tama->years = 0;
     game_tama->x = CENTER_X;
     game_tama->y = BOTTOM_Y;
-    game_tama->energy = 3;
-    game_tama->happy = 3;
+    game_tama->energy = 5;
+    game_tama->happy = 5;
     game_tama->playCount = 0;
 
     UpdateWholeDisplay(game_tama);
     StartOneShot10sTimer();
-    StartOneShot6sTimer();
+    StartOneShot5sTimer();
 }
 
 //-----------------------------------------------------------------------
@@ -771,56 +767,41 @@ int main(void) {
     InitUART();
     InitLEDs();
     Init10sTimer();
-    Init6sTimer();
+    Init5sTimer();
 
     SetupNewGame(&myTamagotchi);
+
+    char hasBeen10s = 0;
 
     while (1) {
 
         if (UARTHasChar()) {
             c = UARTGetChar();
-            if (myTamagotchi.age > egg && myTamagotchi.age != dead){
+            if (myTamagotchi.age != dead)
                 processChar(c, &myTamagotchi);
-            }
             UARTPutChar(c);
         }
 
-        //Decrease energy every 6s
-        if (OneShot6sTimerExpired()){
-            //if (IsAlive(&myTamagotchi)){
-            if (myTamagotchi.age > egg)
-               DecrementEnergy(&myTamagotchi);
-               // StartOneShot6sTimer();
-           // }
+        if (OneShot5sTimerExpired()){
+            //Only do stuff if its still alive
             if (IsAlive(&myTamagotchi)){
-                StartOneShot6sTimer();
-            }
-            else {
-                TamagotchiDie(&myTamagotchi);
-                while(1);
-                //return 0;
-            }
-        }
-
-        //Every 10s, grow older and decrease happiness.
-        if (OneShot10sTimerExpired()){
-            //if (IsAlive(&myTamagotchi)){
-                GrowOlder(&myTamagotchi);
-
-                if (myTamagotchi.age > egg)
+                //Every 10s, grow older and decrease happy.
+                if (hasBeen10s){
+                    GrowOlder(&myTamagotchi);
                     DecrementHappy(&myTamagotchi);
-
-                if (IsAlive(&myTamagotchi)){
-                    StartOneShot10sTimer();
+                    hasBeen10s = 0;
                 }
-                else{
-                    TamagotchiDie(&myTamagotchi);
-                    while(1);
-                    //return 0;
-                }
+                else
+                    hasBeen10s = 1;
+                //Every 5s, decrease energy.
+                DecrementEnergy(&myTamagotchi);
+            }
 
-                //StartOneShot10sTimer();
-            //}
+            //Check if it died after doing stuff
+            if (!IsAlive(&myTamagotchi))
+                TamagotchiDie(&myTamagotchi);
+
+            StartOneShot5sTimer();
         }
     }
 }
