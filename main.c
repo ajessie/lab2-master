@@ -146,6 +146,13 @@ void InitUART() {
         GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
 }
 
+void WriteBR(){
+    char text[16] = "";
+    Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
+    sprintf(text, "%u", currentBaudRate);
+    Graphics_drawString(&g_sContext, (int8_t *) text, -1, 106, 0, true);
+}
+
 void UARTSetBaudRate(UARTBaudRate_t t) {
     currentBaudRate = t;
     switch (currentBaudRate){
@@ -189,6 +196,7 @@ void UARTToggleBaudRate() {
         UARTSetBaudRate(baud9600);
         break;
     }
+    WriteBR();
 }
 
 bool UARTHasChar() {
@@ -425,6 +433,8 @@ void DrawMeterNames(){
 
     sprintf(text, "Age:");
     Graphics_drawString(&g_sContext, (int8_t *) text, -1, 0, 0, true);
+    sprintf(text, "BR:");
+    Graphics_drawString(&g_sContext, (int8_t *) text, -1, 80, 0, true);
     sprintf(text, "Energy:");
     Graphics_drawString(&g_sContext, (int8_t *) text, -1, 0, 96, true);
     sprintf(text, "Happy:");
@@ -435,7 +445,7 @@ void WriteAge(Tamagotchi *game_tama){
     char text[16] = "";
     Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
     sprintf(text, "%u", game_tama->years);
-    Graphics_drawString(&g_sContext, (int8_t *) text, -1, 40, 0, true);
+    Graphics_drawString(&g_sContext, (int8_t *) text, -1, 36, 0, true);
 }
 
 void WriteEnergyMeter(Tamagotchi *game_tama){
@@ -586,6 +596,7 @@ void UpdateWholeDisplay(Tamagotchi *game_tama) {
     DrawBorders();
     DrawTamagotchi(game_tama);
     WriteAge(game_tama);
+    WriteBR();
     WriteEnergyMeter(game_tama);
     WriteHappyMeter(game_tama);
 }
@@ -707,7 +718,9 @@ void GrowOlder(Tamagotchi *game_tama){
 void processChar(uint8_t c, Tamagotchi *game_tama) {
     UARTPutChar(c);
 
-    if (c == 'f')
+    if (c == 'r')
+        UARTToggleBaudRate();
+    else if (c == 'f')
         IncrementEnergy(game_tama);
     else if (game_tama->energy > 0){
         if (c == 'w')
